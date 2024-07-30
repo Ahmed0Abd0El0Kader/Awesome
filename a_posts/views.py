@@ -1,29 +1,67 @@
-from django.shortcuts import render ,redirect
+from django.shortcuts import render ,redirect ,get_object_or_404
 from .models import * 
-from django.forms import ModelForm ,Textarea
+from bs4 import BeautifulSoup
+import requests
+from django.contrib import messages
+from .forms import *
 # Create your views here.
 def home_view(request):
     posts = Post.objects.all()
     return render(request, "a_posts/home.html",{'posts': posts})
 
 
-class PostCreateForm(ModelForm):
-    class Meta:
-        model = Post
-        fields = '__all__'
-        labels = {
-            'body':'Caption',
-        }
-        widgets = {
-            'body': Textarea(attrs={'rows': 3,'placeholder':'Add Caption Here ...........','class':'font1 text-4xl'}),
-        }
 
 def post_create_view(request):
     form = PostCreateForm()
     if request.method == 'POST':
         form = PostCreateForm(request.POST)
         if form.is_valid():
-            form.save()
+            post = form.save(commit=False)
+            website = requests.get(form.data['url'])
+            sourcecode = BeautifulSoup(website.text,'html.parser')
+            find_image = sourcecode.select('meta[content^="https://live.staticflickr.com/"]')
+            image = find_image[0]['content']
+            post.image = image
+            
+            find_title = sourcecode.select('h1.photo-title')
+            title = find_title[0].text.strip()
+            post.title = title
+            
+            find_title = sourcecode.select('a.owner-name')             
+            artist = find_title[0].text.strip()
+            post.artist = artist
+            
+            post.save()
             return redirect('home')
     context = {'form': form}
     return render(request, "a_posts/post_create.html",context)
+
+
+
+def post_delete_view(request,id):
+    post = get_object_or_404(Post,id = id)
+    if request.method == "POST":
+        post.delete()
+        messages.success(request ,'Post Deleted')
+        return redirect('home')
+    context = {'post': post}
+    return render(request, "a_posts/post_delete.html",context)
+
+
+def post_edit_view(request,id):
+    post = get_object_or_404(Post,id = id)
+    form = PostEditForm(instance=post)
+    if request.method == 'POST':
+        form = PostEditForm(request.POST,instance=post)
+        if form.is_valid():
+            form.save()
+            messages.success(request,'Post Updated')
+            return redirect('home')
+    context = {'post': post,
+               'form':form,}
+    return render(request, "a_posts/post_edit.html",context)
+
+def post_page_view(request,id):
+    post = get_object_or_404(Post,id = id)
+    context = {'post': post}
+    return render(request,'a_posts/post_page.html',context)
