@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 import requests
 from django.contrib import messages
 from .forms import *
+from django.contrib.auth.decorators import login_required
 
 
 
@@ -30,7 +31,7 @@ def home_view(request,tag = None):
 
 
 
-
+@login_required
 def post_create_view(request):
     form = PostCreateForm()
     if request.method == 'POST':
@@ -50,7 +51,7 @@ def post_create_view(request):
             find_title = sourcecode.select('a.owner-name')             
             artist = find_title[0].text.strip()
             post.artist = artist
-            
+            post.author = request.user
             post.save()
             form.save_m2m()
             return redirect('home')
@@ -58,9 +59,9 @@ def post_create_view(request):
     return render(request, "a_posts/post_create.html",context)
 
 
-
+@login_required
 def post_delete_view(request,id):
-    post = get_object_or_404(Post,id = id)
+    post = get_object_or_404(Post,id = id,author = request.user)
     if request.method == "POST":
         post.delete()
         messages.success(request ,'Post Deleted')
@@ -69,8 +70,10 @@ def post_delete_view(request,id):
     return render(request, "a_posts/post_delete.html",context)
 
 
+@login_required
 def post_edit_view(request,id):
-    post = get_object_or_404(Post,id = id)
+    post = get_object_or_404(Post,id = id,author = request.user)
+
     form = PostEditForm(instance=post)
     if request.method == 'POST':
         form = PostEditForm(request.POST,instance=post)
