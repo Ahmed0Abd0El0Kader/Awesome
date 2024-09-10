@@ -40,3 +40,25 @@ class PostEditForm(forms.ModelForm):
             'body': forms.Textarea(attrs={'rows': 3,'placeholder':'Add Caption Here ...........','class':'font1 text-4xl'}),
             'tags':forms.CheckboxSelectMultiple(),
         }
+        
+class CommentCreateForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['body']
+        labels = {
+            'body':'',
+        }
+        widgets = {
+            'body': forms.TextInput(attrs={'placeholder':'Add Comment Here ...........'}),
+        }
+        
+class ReplyCreateForm(forms.ModelForm):
+    class Meta:
+        model = Reply
+        fields = ['body']
+        labels = {
+            'body':'',
+        }
+        widgets = {
+            'body': forms.TextInput(attrs={'placeholder':'Add Reply Here ...........' ,'class':'text-sm'}),
+        }
